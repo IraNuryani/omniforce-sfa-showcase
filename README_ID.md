@@ -1,13 +1,17 @@
 # 🌟 OmniForce SFA Enterprise™ Showcase
 ### Enterprise Sales Force Automation, Resilient Staging Pipelines & CAPA Audit Logistics
 
-[![PHP](https://img.shields.io/badge/PHP-8.2-777BB4?logo=php)](https://www.php.net/)
-[![Laravel](https://img.shields.io/badge/Laravel-v10.x-FF2D20?logo=laravel)](https://laravel.com/)
-[![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-3.4-38B2AC?logo=tailwind-css)](https://tailwindcss.com/)
-[![Alpine.js](https://img.shields.io/badge/Alpine.js-3.x-8BC0D0?logo=alpinedotjs)](https://alpinejs.dev/)
+[![PHP](https://img.shields.io/badge/PHP-8.2-777BB4?logo=php&logoColor=white)](https://www.php.net/)
+[![Laravel](https://img.shields.io/badge/Laravel-v10.x-FF2D20?logo=laravel&logoColor=white)](https://laravel.com/)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-3.4-38B2AC?logo=tailwind-css&logoColor=white)](https://tailwindcss.com/)
+[![Alpine.js](https://img.shields.io/badge/Alpine.js-3.x-8BC0D0?logo=alpinedotjs&logoColor=white)](https://alpinejs.dev/)
 [![SQLite](https://img.shields.io/badge/SQLite-Zero_Config-003B57?logo=sqlite)](https://www.sqlite.org/)
-[![PhpSpreadsheet](https://img.shields.io/badge/PhpSpreadsheet-1.29-217346?logo=microsoftexcel)](https://phpspreadsheet.readthedocs.io/)
+[![PhpSpreadsheet](https://img.shields.io/badge/PhpSpreadsheet-1.29-217346?logo=microsoftexcel&logoColor=white)](https://phpspreadsheet.readthedocs.io/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
+> **🌐 Bahasa / Language:** **Bahasa Indonesia (Saat ini)** | [English](README.md)
+
+---
 
 > **👨‍💻 Peran Utama Pengembang:** **Backend Software Engineer & API Architect**  
 > *Repositori ini merupakan implementasi acuan berskala produksi yang dirancang dari sudut pandang seorang Backend Engineer. Antarmuka frontend yang disertakan (Simulator Smartphone dan Web Admin Console) berfungsi sebagai test harness interaktif untuk mendemonstrasikan, menguji beban, dan mengevaluasi keandalan arsitektur backend secara langsung.*
@@ -30,45 +34,46 @@
 
 ```mermaid
 flowchart TD
-    subgraph Mobile Field Agent [1. Interaksi Klien Mobile Lapangan]
-        A([Salesman Tiba di Toko]) --> B[Pilih Toko & Ambil Koordinat GPS HP]
-        B --> C[Ambil Foto Selfie Bukti Kehadiran]
-        C --> D{Kondisi Sinyal Seluler?}
-        D -- Sinyal Buruk / Offline -- E[Simpan di Antrean Offline Lokal]
-        D -- Terhubung / Online -- F[HTTP POST /api/v1/visit-logs]
-        E -. Sinyal Pulih .-> F
+    subgraph MFA ["1. Interaksi Klien Mobile Lapangan"]
+        A(["Salesman Tiba di Toko"]) --> B["Pilih Toko & Ambil Koordinat GPS HP"]
+        B --> C["Ambil Foto Selfie Bukti Kehadiran"]
+        C --> D{"Kondisi Sinyal Seluler?"}
+        D -->|"Sinyal Buruk / Offline"| E["Simpan di Antrean Offline Lokal"]
+        D -->|"Terhubung / Online"| F["HTTP POST /api/v1/visit-logs"]
+        E -.->|"Sinyal Pulih"| F
     end
 
-    subgraph Staging Ingestion Subsystem [2. Engine Penyerapan Staging Cepat]
-        F --> G[VisitLogController::store]
-        G --> H[(Tabel Staging: visit_logs_temp)]
-        H --> I([Respons Instan HTTP 201 Created < 20ms])
+    subgraph SIS ["2. Engine Penyerapan Staging Cepat"]
+        F --> G["VisitLogController::store"]
+        G --> H[("Tabel Staging: visit_logs_temp")]
+        H --> I(["Respons Instan HTTP 201 Created &lt; 20ms"])
     end
 
-    subgraph Background Sync Worker [3. Background Synchronizer Daemon]
-        J([Worker Artisan: visitlogs:sync]) --> K{Ambil Antrean Pending}
-        K -- sync_attempts < 20 -- L[Proses Baris dalam Transaksi DB]
-        L --> M[Hitung Jarak Geodesik Rumus Haversine]
-        M --> N{Jarak <= 250m?}
-        N -- Ya -- O[Tandai: is_within_geofence = TRUE]
-        N -- Tidak -- P[Tandai: is_within_geofence = FALSE]
-        O & P --> Q[Komit Atomik ke Tabel Utama Produksi]
-        Q --> R[Hapus Baris Antrean Sementara dari Staging]
-        L -- Gagal -- S[Naikkan sync_attempts & Catat last_error]
+    subgraph BSW ["3. Background Synchronizer Daemon"]
+        J(["Worker Artisan: visitlogs:sync"]) --> K{"Ambil Antrean Pending"}
+        K -->|"sync_attempts &lt; 20"| L["Proses Baris dalam Transaksi DB"]
+        L --> M["Hitung Jarak Geodesik Haversine"]
+        M --> N{"Jarak &le; 250m?"}
+        N -->|Ya| O["Flag: is_within_geofence = TRUE"]
+        N -->|Tidak| P["Flag: is_within_geofence = FALSE"]
+        O --> Q["Komit Atomik ke Tabel Produksi"]
+        P --> Q
+        Q --> R["Hapus Baris Antrean Sementara"]
+        L -->|Gagal| S["Tingkatkan sync_attempts & Catat last_error"]
     end
 
-    subgraph Production Store & Web Management [4. Pusat Manajemen & Dokumen]
-        Q --> T[(Tabel Produksi: visit_logs)]
-        T --> U[Mesin Analitik: Rasio Kepatuhan Kunjungan]
-        T --> V[Ekspor Excel Otomatis: PhpSpreadsheet]
+    subgraph PSWM ["4. Manajemen Pusat & Dokumen Korporat"]
+        Q --> T[("Basis Data Produksi: visit_logs")]
+        T --> U["Engine Analisis: Rasio Kepatuhan"]
+        T --> V["Ekspor Excel Template: PhpSpreadsheet"]
         
-        W([Klaim Toko / Selisih Barang]) --> X[POST /api/v1/complaints]
-        X --> Y[(Tabel Komplain & Akar Masalah PICA)]
-        Y --> Z[Formulir Audit Cetak CAPA / Ekspor Word]
+        W(["Klaim Toko / Barang Rusak"]) --> X["POST /api/v1/complaints"]
+        X --> Y[("Tabel Komplain & Akar Masalah PICA")]
+        Y --> Z["Dokumen Cetak Formal Audit CAPA / Ekspor Word"]
     end
 
-    H -. Dibaca Berkala oleh Worker .-> J
-    T -. Metrik Agregasi .-> AA([Web Admin Console])
+    H -.->|"Diproses Berkala oleh Worker"| J
+    T -.->|"Agregasi Metrik KPI"| AA(["Web Admin Console"])
 ```
 
 ---
@@ -78,13 +83,27 @@ flowchart TD
 ### 1. Formulasi Matematis Geofencing Haversine
 Untuk mengeliminasi kecurangan absensi (*fake check-in*), backend mengimplementasikan formula trigonometri sferis Haversine guna menghitung jarak lingkaran besar (*great-circle distance*) antara koordinat GPS perangkat sales dengan koordinat master toko:
 
-$$\Delta \varphi = \varphi_2 - \varphi_1 \quad (\text{perbedaan lintang / latitude})$$
-$$\Delta \lambda = \lambda_2 - \lambda_1 \quad (\text{perbedaan bujur / longitude})$$
-$$a = \sin^2\left(\frac{\Delta \varphi}{2}\right) + \cos(\varphi_1) \cdot \cos(\varphi_2) \cdot \sin^2\left(\frac{\Delta \lambda}{2}\right)$$
-$$c = 2 \cdot \text{atan2}\left(\sqrt{a}, \sqrt{1-a}\right)$$
-$$d = R \cdot c \quad (\text{dengan radius rata-rata bumi } R = 6.371.000 \text{ meter})$$
+$$
+\Delta \varphi = \varphi_2 - \varphi_1 \quad (\text{perbedaan lintang / latitude})
+$$
 
-* **Ambang Batas Kehadiran Valid:** $d \le 250\text{ meter} \implies \text{Valid Attendance}$.  
+$$
+\Delta \lambda = \lambda_2 - \lambda_1 \quad (\text{perbedaan bujur / longitude})
+$$
+
+$$
+a = \sin^2\left(\frac{\Delta \varphi}{2}\right) + \cos(\varphi_1) \cdot \cos(\varphi_2) \cdot \sin^2\left(\frac{\Delta \lambda}{2}\right)
+$$
+
+$$
+c = 2 \cdot \text{atan2}\left(\sqrt{a}, \sqrt{1-a}\right)
+$$
+
+$$
+d = R \cdot c \quad (\text{dengan radius rata-rata bumi } R = 6.371.000 \text{ meter})
+$$
+
+* **Ambang Batas Kehadiran Valid:** $d \le 250\text{ meter} \implies \text{Valid Attendance (is\_within\_geofence = true)}$.  
 * **Pelanggaran Geofence:** $d > 250\text{ meter} \implies \text{Flagged as Outside Radius}$ (ditandai otomatis pada audit trail manajemen).
 
 ---
@@ -99,7 +118,9 @@ Ketika ratusan tenaga penjual melakukan absensi serentak di pagi hari dari area 
 ### 3. Mesin Analisis Kinerja & Kepatuhan Real-Time (*Visit Analytics Engine*)
 Endpoint `/api/v1/visit-logs/analytics` mengolah data transaksi menggunakan query agregasi performa tinggi untuk menghasilkan metrik evaluasi operasional:
 * **Schedule Compliance Rate:**
-  $$\text{Compliance Rate} = \left(\frac{\sum \text{Visits}_{\text{within geofence}}}{\sum \text{Total Completed Visits}}\right) \times 100\%$$
+  $$
+  \text{Compliance Rate} = \left(\frac{\sum \text{Visits}_{\text{within geofence}}}{\sum \text{Total Completed Visits}}\right) \times 100\%
+  $$
 * **Buffer Health Index:** Memantau jumlah data menggantung pada antrean `visit_logs_temp` untuk memverifikasi kesehatan sinkronisasi sistem secara menyeluruh.
 
 ---
@@ -111,7 +132,7 @@ Memenuhi kebutuhan administrasi korporasi dengan menghasilkan dokumen bisnis res
 
 ---
 
-### 5. Zero-Setup Local SQLite Database
+### 5. Zero-Setup Local Embedded SQLite Architecture
 Menggunakan SQLite lokal yang diorkestrasi melalui migrasi dan seeder resmi Laravel. Siapa pun yang meng-clone repositori ini dapat menguji dan mengevaluasi seluruh alur kerja backend seketika tanpa perlu menginstal atau menyetel server MySQL/PostgreSQL/Redis secara terpisah.
 
 ---
@@ -123,7 +144,7 @@ omniforce-sfa-lite/
 ├── artisan                                # CLI Runner Laravel
 ├── composer.json                          # Manifest dependensi backend
 ├── docker-compose.yml                     # Orkestrasi container Docker 1-klik
-├── .gitignore
+├── .gitignore                             # Aturan pengabaian Git (sanitasi .env & sqlite)
 ├── README.md                              # Dokumentasi standar internasional (English)
 ├── README_ID.md                           # Dokumentasi teknis formal (Bahasa Indonesia)
 ├── app/
@@ -142,13 +163,13 @@ omniforce-sfa-lite/
 │   │   │       ├── DemoController.php     # Controller harness UI simulator & admin console
 │   │   │       └── ExportController.php   # Generator ekspor spreadsheet Excel & dokumen Word
 │   ├── Models/
-│   │   ├── Area.php                       # Model teritorial wilayah (NestedSet ready)
+│   │   ├── Area.php                       # Model teritorial wilayah operasional
 │   │   ├── Customer.php                   # Model outlet/toko retail dengan koordinat GPS
 │   │   ├── User.php                       # Model pengguna (Admin & Sales Representative)
 │   │   ├── VisitLog.php                   # Model transaksi absensi produksi
 │   │   ├── VisitLogTemp.php               # Model antrean staging penyerapan offline
 │   │   ├── Complaint.php                  # Model insiden komplain & retur produk
-│   │   └── ComplaintPica.php              # Model investigasi akar masalah (CAPA/PICA)
+│   │   └── ComplaintPica.php              # Model investigasi akar masalah 5-Whys (CAPA/PICA)
 │   ├── Services/
 │   │   ├── DocumentExportService.php      # Engine perakitan dokumen Excel terformat
 │   │   └── ExcelTemplateService.php       # Engine substitusi placeholder template {key}
@@ -184,8 +205,8 @@ Repositori ini telah dikonfigurasi menggunakan **SQLite bawaan**, sehingga **tid
 
 ```bash
 # 1. Clone repositori
-git clone https://github.com/USERNAME_ANDA/omniforce-sfa-lite.git
-cd omniforce-sfa-lite
+git clone https://github.com/IraNuryani/omniforce-sfa-showcase.git
+cd omniforce-sfa-showcase
 
 # 2. Pasang dependensi backend
 composer install

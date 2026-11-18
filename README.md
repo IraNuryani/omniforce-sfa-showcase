@@ -1,22 +1,26 @@
 # 🌟 OmniForce SFA Enterprise™ Showcase
 ### Enterprise Sales Force Automation, Resilient Staging Pipelines & CAPA Audit Logistics
 
-[![PHP](https://img.shields.io/badge/PHP-8.2-777BB4?logo=php)](https://www.php.net/)
-[![Laravel](https://img.shields.io/badge/Laravel-v10.x-FF2D20?logo=laravel)](https://laravel.com/)
-[![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-3.4-38B2AC?logo=tailwind-css)](https://tailwindcss.com/)
-[![Alpine.js](https://img.shields.io/badge/Alpine.js-3.x-8BC0D0?logo=alpinedotjs)](https://alpinejs.dev/)
-[![SQLite](https://img.shields.io/badge/SQLite-Zero_Config-003B57?logo=sqlite)](https://www.sqlite.org/)
-[![PhpSpreadsheet](https://img.shields.io/badge/PhpSpreadsheet-1.29-217346?logo=microsoftexcel)](https://phpspreadsheet.readthedocs.io/)
+[![PHP](https://img.shields.io/badge/PHP-8.2-777BB4?logo=php&logoColor=white)](https://www.php.net/)
+[![Laravel](https://img.shields.io/badge/Laravel-v10.x-FF2D20?logo=laravel&logoColor=white)](https://laravel.com/)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-3.4-38B2AC?logo=tailwind-css&logoColor=white)](https://tailwindcss.com/)
+[![Alpine.js](https://img.shields.io/badge/Alpine.js-3.x-8BC0D0?logo=alpinedotjs&logoColor=white)](https://alpinejs.dev/)
+[![SQLite](https://img.shields.io/badge/SQLite-Zero_Config-003B57?logo=sqlite&logoColor=white)](https://www.sqlite.org/)
+[![PhpSpreadsheet](https://img.shields.io/badge/PhpSpreadsheet-1.29-217346?logo=microsoftexcel&logoColor=white)](https://phpspreadsheet.readthedocs.io/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
+> **🌐 Language / Bahasa:** **English (Current)** | [Bahasa Indonesia](README_ID.md)
+
+---
+
 > **👨‍💻 Primary Engineer Role:** **Backend Software Engineer & API Architect**  
-> *This repository is a production-grade reference implementation engineered from the perspective of a Backend Engineer. The embedded frontend interfaces (Smartphone Simulator and Web Management Console) serve as an interactive test harness and live evaluation suite to demonstrate and stress-test the backend architecture in real-time.*
+> *This repository is an enterprise-grade reference implementation engineered from the perspective of a Backend Engineer. The embedded frontend interfaces (Smartphone Simulator and Web Management Console) serve as an interactive test harness and live evaluation suite to demonstrate and stress-test the backend architecture in real-time.*
 
 ---
 
 ## 📌 Executive Summary
 
-**OmniForce SFA Enterprise™ Showcase** is an enterprise-scale backend software engineering reference implementation demonstrating the **End-to-End Field Sales Automation & Distribution Audit Lifecycle**:
+**OmniForce SFA Enterprise™ Showcase** is a production-grade backend software engineering reference implementation demonstrating the **End-to-End Field Sales Automation & Distribution Audit Lifecycle**:
 
 1. **Multi-Tier Territory & Customer Hierarchy:** Scalable relational mapping of operational territories (**Zone $\rightarrow$ Area $\rightarrow$ Retail Outlets**) with strict data isolation, route planning, and salesperson assignment matrices.
 2. **Resilient Non-Blocking Staging Queue (Zero Data Loss):** Ingestion architecture tailored for low-connectivity environments (store basements, rural transit). Field submissions write directly into a staging buffer (`visit_logs_temp`) in **sub-20ms**, eliminating mobile client timeouts.
@@ -26,225 +30,242 @@
 
 ---
 
-## 🏗 Arsitektur Sistem & Alur Bisnis
+## 🏗 System Architecture & Business Workflow
 
 ```mermaid
 flowchart TD
-    subgraph Mobile Field Agent [1. Mobile Client & Field Interaction]
-        A([Sales Rep Arrives at Store]) --> B[Select Store & Capture Device GPS]
-        B --> C[Take Tamper-Proof Attendance Selfie]
-        C --> D{Cellular Reception?}
-        D -- Weak / Offline -- E[Store in Local Offline Buffer]
-        D -- Connected / Online -- F[HTTP POST /api/v1/visit-logs]
-        E -. Network Restored .-> F
+    subgraph MFA ["1. Mobile Client & Field Interaction"]
+        A(["Sales Rep Arrives at Store"]) --> B["Select Store & Capture Device GPS"]
+        B --> C["Take Tamper-Proof Attendance Selfie"]
+        C --> D{"Cellular Reception?"}
+        D -->|"Weak / Offline"| E["Store in Local Offline Buffer"]
+        D -->|"Connected / Online"| F["HTTP POST /api/v1/visit-logs"]
+        E -.->|"Network Restored"| F
     end
 
-    subgraph Staging Ingestion Subsystem [2. Resilient Staging Ingestion Engine]
-        F --> G[VisitLogController::store]
-        G --> H[(Staging Table: visit_logs_temp)]
-        H --> I([Immediate HTTP 201 Created Response < 20ms])
+    subgraph SIS ["2. Resilient Staging Ingestion Engine"]
+        F --> G["VisitLogController::store"]
+        G --> H[("Staging Table: visit_logs_temp")]
+        H --> I(["Immediate HTTP 201 Created Response &lt; 20ms"])
     end
 
-    subgraph Background Sync Worker [3. Background Synchronizer Daemon]
-        J([Artisan Worker: visitlogs:sync]) --> K{Query Pending Staging Rows}
-        K -- sync_attempts < 20 -- L[Fetch Row within DB Transaction]
-        L --> M[Evaluate Haversine Geodesic Distance]
-        M --> N{Distance <= 250m?}
-        N -- Yes -- O[Flag: is_within_geofence = TRUE]
-        N -- No -- P[Flag: is_within_geofence = FALSE]
-        O & P --> Q[Commit Atomically to Production Table]
-        Q --> R[Delete Processed Temporary Staging Row]
-        L -- Failure -- S[Increment sync_attempts & Write last_error]
+    subgraph BSW ["3. Background Synchronizer Daemon"]
+        J(["Artisan Worker: visitlogs:sync"]) --> K{"Query Pending Staging Rows"}
+        K -->|"sync_attempts &lt; 20"| L["Fetch Row within DB Transaction"]
+        L --> M["Evaluate Haversine Geodesic Distance"]
+        M --> N{"Distance &le; 250m?"}
+        N -->|Yes| O["Flag: is_within_geofence = TRUE"]
+        N -->|No| P["Flag: is_within_geofence = FALSE"]
+        O --> Q["Commit Atomically to Production Table"]
+        P --> Q
+        Q --> R["Delete Processed Temporary Staging Row"]
+        L -->|Failure| S["Increment sync_attempts & Write last_error"]
     end
 
-    subgraph Production Store & Web Management [4. Enterprise Management & Document Center]
-        Q --> T[(Production DB: visit_logs)]
-        T --> U[Visit Analytics Engine: Compliance Rate]
-        T --> V[Template-Driven Excel Export: PhpSpreadsheet]
+    subgraph PSWM ["4. Enterprise Management & Document Center"]
+        Q --> T[("Production DB: visit_logs")]
+        T --> U["Visit Analytics Engine: Compliance Rate"]
+        T --> V["Template-Driven Excel Export: PhpSpreadsheet"]
         
-        W([Store Dispute / Damaged Goods]) --> X[POST /api/v1/complaints]
-        X --> Y[(Complaints & PICA Root Cause Table)]
-        Y --> Z[Formal CAPA Printable Audit Document / Word Export]
+        W(["Store Dispute / Damaged Goods"]) --> X["POST /api/v1/complaints"]
+        X --> Y[("Complaints & PICA Root Cause Table")]
+        Y --> Z["Formal CAPA Printable Audit Document / Word Export"]
     end
 
-    H -. Polled by Worker .-> J
-    T -. Aggregated KPIs .-> AA([Web Admin Console])
+    H -.->|"Polled by Worker"| J
+    T -.->|"Aggregated KPIs"| AA(["Web Admin Console"])
 ```
 
 ---
 
-## ⚡ Fitur Rekayasa Unggulan (Engineering Highlights)
+## ⚡ Engineering Highlights
 
-### 1. Formulasi Matematis Geofencing Haversine
-Untuk mengeliminasi kecurangan absensi (*fake check-in*), backend mengimplementasikan formula trigonometri sferis Haversine guna menghitung jarak lingkaran besar (*great-circle distance*) antara koordinat GPS perangkat sales dengan koordinat master toko:
+### 1. Haversine Spherical Geodesic Geofencing Formula
+To eliminate attendance fraud (*fake check-ins* or GPS spoofing), the backend calculates the great-circle distance between the field agent's recorded GPS coordinates and the retail store's master coordinates using the spherical Haversine trigonometric formula:
 
-$$\Delta \varphi = \varphi_2 - \varphi_1 \quad (\text{perbedaan lintang / latitude})$$
-$$\Delta \lambda = \lambda_2 - \lambda_1 \quad (\text{perbedaan bujur / longitude})$$
-$$a = \sin^2\left(\frac{\Delta \varphi}{2}\right) + \cos(\varphi_1) \cdot \cos(\varphi_2) \cdot \sin^2\left(\frac{\Delta \lambda}{2}\right)$$
-$$c = 2 \cdot \text{atan2}\left(\sqrt{a}, \sqrt{1-a}\right)$$
-$$d = R \cdot c \quad (\text{dengan radius rata-rata bumi } R = 6.371.000 \text{ meter})$$
+$$
+\Delta \varphi = \varphi_2 - \varphi_1 \quad (\text{latitude difference in radians})
+$$
 
-* **Ambang Batas Kehadiran Valid:** $d \le 250\text{ meter} \implies \text{Valid Attendance}$.  
-* **Pelanggaran Geofence:** $d > 250\text{ meter} \implies \text{Flagged as Outside Radius}$ (ditandai otomatis pada audit trail manajemen).
+$$
+\Delta \lambda = \lambda_2 - \lambda_1 \quad (\text{longitude difference in radians})
+$$
+
+$$
+a = \sin^2\left(\frac{\Delta \varphi}{2}\right) + \cos(\varphi_1) \cdot \cos(\varphi_2) \cdot \sin^2\left(\frac{\Delta \lambda}{2}\right)
+$$
+
+$$
+c = 2 \cdot \text{atan2}\left(\sqrt{a}, \sqrt{1-a}\right)
+$$
+
+$$
+d = R \cdot c \quad (\text{mean Earth radius } R = 6,371,000 \text{ meters})
+$$
+
+* **Valid Attendance Perimeter:** $d \le 250\text{ meters} \implies \text{Valid Attendance (is\_within\_geofence = true)}$.  
+* **Geofence Violation:** $d > 250\text{ meters} \implies \text{Flagged as Outside Radius}$ (flagged automatically in management audit trail).
 
 ---
 
-### 2. Pola Antrean Staging Tahan Gangguan Jaringan (*Fault-Tolerant Staging Queue*)
-Ketika ratusan tenaga penjual melakukan absensi serentak di pagi hari dari area basemen toko retail, pemrosesan transaksi basis data secara langsung (*synchronous write to main table*) dapat menimbulkan *database lock contention*, lonjakan latensi, dan *connection timeout*.
-* **Arsitektur Solusi:** Permintaan diterima oleh *lightweight controller*, langsung disimpan ke tabel penyangga sementara `visit_logs_temp`, dan merespons klien dengan status HTTP 201 Created dalam hitungan milidetik.
-* **Worker Terjadwal:** Artisan command `visitlogs:sync` mengambil antrean secara berkala, melakukan validasi idempotensi, memindahkan data dalam transaksi atomik (`DB::beginTransaction()`), serta menerapkan *exponential backoff* hingga 20 kali percobaan bila terjadi kendala sementara.
+### 2. Fault-Tolerant Staging Ingestion Queue Pattern
+When hundreds of field sales representatives submit attendance logs simultaneously during morning peak hours from basement retail stores, writing directly to the primary operational tables can cause database lock contention, latency spikes, and connection timeouts.
+* **Architecture Solution:** Requests are received by a lightweight ingestion controller, written immediately to a staging buffer table (`visit_logs_temp`), and respond to the client with an HTTP 201 Created status in milliseconds.
+* **Scheduled Background Worker:** A dedicated Artisan command (`php artisan visitlogs:sync`) polls pending rows, enforces idempotency, migrates data in atomic database transactions (`DB::beginTransaction()`), and applies an exponential backoff policy up to 20 retry attempts in case of transient failures.
 
 ---
 
-### 3. Mesin Analisis Kinerja & Kepatuhan Real-Time (*Visit Analytics Engine*)
-Endpoint `/api/v1/visit-logs/analytics` mengolah data transaksi menggunakan query agregasi performa tinggi untuk menghasilkan metrik evaluasi operasional:
+### 3. High-Throughput Compliance & Performance Analytics Engine
+The `/api/v1/visit-logs/analytics` endpoint processes operational data using high-performance aggregation queries to generate executive KPI metrics:
 * **Schedule Compliance Rate:**
-  $$\text{Compliance Rate} = \left(\frac{\sum \text{Visits}_{\text{within geofence}}}{\sum \text{Total Completed Visits}}\right) \times 100\%$$
-* **Buffer Health Index:** Memantau jumlah data menggantung pada antrean `visit_logs_temp` untuk memverifikasi kesehatan sinkronisasi sistem secara menyeluruh.
+  $$
+  \text{Compliance Rate} = \left(\frac{\sum \text{Visits}_{\text{within geofence}}}{\sum \text{Total Completed Visits}}\right) \times 100\%
+  $$
+* **Buffer Health Index:** Continuously monitors pending rows in `visit_logs_temp` to verify system-wide synchronization health and detect ingestion bottlenecks.
 
 ---
 
 ### 4. Template-Driven Document & Report Exporting Engine
-Memenuhi kebutuhan administrasi korporasi dengan menghasilkan dokumen bisnis resmi langsung dari backend:
-* **Streaming Excel Spreadsheet (`PhpSpreadsheet`):** Menghasilkan berkas audit `.xlsx` berformat rapi dengan *auto-sized columns*, *cell styling*, dan indikator status otomatis (`/export/visit-logs/excel`).
-* **CAPA / PICA Audit Report Generator:** Membangun lembar investigasi masalah mutu berstandar audit ISO (mencakup kronologi masalah, analisis akar masalah *5-Whys*, tindakan perbaikan/pencegahan, dan blok tanda tangan otorisasi) yang siap dicetak (*Print-ready HTML / PDF*) maupun diekspor ke format dokumen Word (`/export/complaints/{id}/word`).
+Automates corporate administrative tasks by streaming enterprise-grade documents directly from the backend:
+* **Streaming Excel Spreadsheet (`PhpSpreadsheet`):** Delivers clean `.xlsx` audit workbooks featuring auto-sized columns, cell styling, and conditional formatting indicators (`/export/visit-logs/excel`).
+* **CAPA / PICA Audit Report Generator:** Compiles formal quality problem resolution reports adhering to ISO 9001 audit standards (including problem description, 5-Whys root cause analysis, corrective/preventive action matrices, and authorization signature blocks) ready for print (`/export/complaints/{id}/print`) or download as Microsoft Word documents (`/export/complaints/{id}/word`).
 
 ---
 
-### 5. Zero-Setup Local SQLite Database
-Menggunakan SQLite lokal yang diorkestrasi melalui migrasi dan seeder resmi Laravel. Siapa pun yang meng-clone repositori ini dapat menguji dan mengevaluasi seluruh alur kerja backend seketika tanpa perlu menginstal atau menyetel server MySQL/PostgreSQL/Redis secara terpisah.
+### 5. Zero-Setup Local Embedded SQLite Architecture
+Configured with an embedded SQLite database orchestrated through official Laravel migrations and seeders. Anyone cloning this repository can immediately test and evaluate the entire backend workflow without installing or configuring external MySQL, PostgreSQL, or Redis instances.
 
 ---
 
-## 📂 Struktur Direktori Repositori
+## 📂 Repository Directory Layout
 
 ```text
 omniforce-sfa-lite/
-├── artisan                                # CLI Runner Laravel
-├── composer.json                          # Manifest dependensi backend
-├── docker-compose.yml                     # Orkestrasi container Docker 1-klik
-├── .gitignore
-├── README.md                              # Dokumentasi standar internasional (English)
-├── README_ID.md                           # Dokumentasi teknis formal (Bahasa Indonesia)
+├── artisan                                # Laravel CLI Runner
+├── composer.json                          # Backend Dependency Manifest
+├── docker-compose.yml                     # 1-Click Docker Container Orchestration
+├── .gitignore                             # Git ignore rules (sanitized .env & sqlite)
+├── README.md                              # Primary International Documentation (English)
+├── README_ID.md                           # Formal Technical Documentation (Bahasa Indonesia)
 ├── app/
 │   ├── Console/
-│   │   ├── Kernel.php                     # Scheduler registrasi background tasks
+│   │   ├── Kernel.php                     # Task Scheduler & Cron Registration
 │   │   └── Commands/
-│   │       ├── ShowcaseSyncCommand.php    # Worker sinkronisasi antrean staging (visitlogs:sync)
-│   │       └── SeedShowcaseCommand.php    # Seeder dataset showcase demo (showcase:seed)
+│   │       ├── ShowcaseSyncCommand.php    # Staging Queue Sync Worker (visitlogs:sync)
+│   │       └── SeedShowcaseCommand.php    # Showcase Demo Dataset Seeder (showcase:seed)
 │   ├── Http/
 │   │   ├── Controllers/
-│   │   │   ├── Controller.php             # Base controller dengan Response Envelope
+│   │   │   ├── Controller.php             # Base Controller with Response Envelope
 │   │   │   ├── Api/
-│   │   │   │   ├── VisitLogController.php # Endpoint penyerapan absensi staging & analitik
-│   │   │   │   └── ComplaintController.php# Endpoint tiket komplain lapangan & PICA
+│   │   │   │   ├── VisitLogController.php # Staging Ingestion & Analytics Endpoints
+│   │   │   │   └── ComplaintController.php# Field Dispute & PICA Incident Endpoints
 │   │   │   └── Web/
-│   │   │       ├── DemoController.php     # Controller harness UI simulator & admin console
-│   │   │       └── ExportController.php   # Generator ekspor spreadsheet Excel & dokumen Word
+│   │   │       ├── DemoController.php     # UI Harness Controller (Simulator & Admin)
+│   │   │       └── ExportController.php   # Excel Spreadsheet & Word Export Engine
 │   ├── Models/
-│   │   ├── Area.php                       # Model teritorial wilayah (NestedSet ready)
-│   │   ├── Customer.php                   # Model outlet/toko retail dengan koordinat GPS
-│   │   ├── User.php                       # Model pengguna (Admin & Sales Representative)
-│   │   ├── VisitLog.php                   # Model transaksi absensi produksi
-│   │   ├── VisitLogTemp.php               # Model antrean staging penyerapan offline
-│   │   ├── Complaint.php                  # Model insiden komplain & retur produk
-│   │   └── ComplaintPica.php              # Model investigasi akar masalah (CAPA/PICA)
+│   │   ├── Area.php                       # Operational Sales Territories
+│   │   ├── Customer.php                   # Retail Store Outlets with GPS Coordinates
+│   │   ├── User.php                       # System Accounts (Admin & Field Reps)
+│   │   ├── VisitLog.php                   # Production Verified Attendance Records
+│   │   ├── VisitLogTemp.php               # Offline Staging Queue Buffer Records
+│   │   ├── Complaint.php                  # Product Dispute & Return Incidents
+│   │   └── ComplaintPica.php              # 5-Whys Root Cause Investigation (CAPA)
 │   ├── Services/
-│   │   ├── DocumentExportService.php      # Engine perakitan dokumen Excel terformat
-│   │   └── ExcelTemplateService.php       # Engine substitusi placeholder template {key}
+│   │   ├── DocumentExportService.php      # Formatted Excel Workbook Assembler
+│   │   └── ExcelTemplateService.php       # Template Placeholder Substitution Engine
 │   └── Traits/
-│       ├── DocumentNumber.php             # Generator penomoran dokumen resmi berurutan
-│       └── SetReponses.php                # Standardized JSON response envelope formatter
+│       ├── DocumentNumber.php             # Sequential Document Code Generator
+│       └── SetReponses.php                # Standardized JSON Response Envelope
 ├── database/
-│   ├── database.sqlite                    # Basis data SQLite bawaan siap pakai
-│   ├── migrations/                        # Skema tabel relasional (UUID PK support)
-│   └── seeders/DatabaseSeeder.php         # Seeder akun, master area, toko, & tiket demo
+│   ├── database.sqlite                    # Zero-config Embedded SQLite Database
+│   ├── migrations/                        # Relational Schemas (UUID PK enabled)
+│   └── seeders/DatabaseSeeder.php         # Demo Accounts, Territory, & Dispute Seeder
 ├── resources/views/
-│   ├── layouts/app.blade.php              # Layout terpadu dengan navigator simulator
+│   ├── layouts/app.blade.php              # Master Layout with Navigation Bar
 │   └── demo/
-│       ├── mobile.blade.php               # Test harness: Simulator smartphone salesman
-│       ├── admin.blade.php                # Test harness: Web admin & document center
-│       ├── report_print.blade.php         # Formulir audit cetak formal CAPA/PICA (ISO-9001)
-│       └── docs.blade.php                 # Playground pengujian REST API interaktif
+│       ├── mobile.blade.php               # Test Harness: Sales Rep Smartphone Simulator
+│       ├── admin.blade.php                # Test Harness: Enterprise Web Admin Console
+│       ├── report_print.blade.php         # ISO-9001 Printable CAPA / PICA Audit Form
+│       └── docs.blade.php                 # Interactive REST API Test Playground
 ├── routes/
-│   ├── api.php                            # Rute endpoint RESTful API v1
-│   ├── web.php                            # Rute tampilan demo harness & download dokumen
-│   └── console.php                        # Rute perintah Artisan CLI
+│   ├── api.php                            # Versioned RESTful API Routes (v1)
+│   ├── web.php                            # Demo Harness UI & Export Routes
+│   └── console.php                        # Artisan CLI Command Routes
 └── tests/Feature/
-    └── VisitLogStagingTest.php            # Automated tests: Staging queue, sync, & export
+    └── VisitLogStagingTest.php            # Automated Tests: Staging, Sync & Export
 ```
 
 ---
 
-## 🚀 Panduan Menjalankan Project (Quick Start < 1 Menit)
+## 🚀 Quick Start Guide (< 1 Minute Setup)
 
-Repositori ini telah dikonfigurasi menggunakan **SQLite bawaan**, sehingga **tidak memerlukan instalasi server database terpisah**.
+This repository includes a **zero-configuration embedded SQLite setup**, eliminating the need for external database servers.
 
-### Opsi 1: Menjalankan secara Lokal dengan PHP (Direkomendasikan)
+### Option 1: Running Locally with PHP (Recommended)
 
 ```bash
-# 1. Clone repositori
-git clone https://github.com/USERNAME_ANDA/omniforce-sfa-lite.git
-cd omniforce-sfa-lite
+# 1. Clone repository
+git clone https://github.com/IraNuryani/omniforce-sfa-showcase.git
+cd omniforce-sfa-showcase
 
-# 2. Pasang dependensi backend
+# 2. Install backend dependencies
 composer install
 
-# 3. Setup environment dan jalankan migrasi dengan seeder bawaan
+# 3. Setup environment and seed database
 cp .env.example .env
 php artisan key:generate
 touch database/database.sqlite
 php artisan migrate --force
 php artisan showcase:seed
 
-# 4. Jalankan development server
+# 4. Start local development server
 php artisan serve
 ```
 
-Aplikasi dan seluruh antarmuka pengujian backend dapat langsung diakses pada:
+Access the interactive interfaces in your browser:
 * 📱 **Mobile Sales Rep Simulator:** [http://localhost:8000](http://localhost:8000)
 * 🖥️ **Web Admin & Document Center:** [http://localhost:8000/demo/admin](http://localhost:8000/demo/admin)
 * 📘 **Interactive API Explorer:** [http://localhost:8000/demo/docs](http://localhost:8000/demo/docs)
 
 ---
 
-### Opsi 2: Menjalankan via Docker Compose
+### Option 2: Running via Docker Compose
 
 ```bash
 docker compose up -d
 ```
-Buka browser pada **[http://localhost:8000](http://localhost:8000)**.
+Open **[http://localhost:8000](http://localhost:8000)** in your browser.
 
 ---
 
-## 🔑 Akun Demo Siap Pakai
+## 🔑 Pre-Configured Demo Credentials
 
-Tersedia akun demonstrasi terkonfigurasi untuk menguji fungsionalitas backend:
+Pre-seeded demonstration accounts for evaluating role-based workflows:
 
-| Peran Akun | Alamat Email | Kata Sandi | Lingkup Hak Akses & Kemampuan |
+| Role | Email Address | Password | Capabilities & Access Scope |
 |---|---|---|---|
-| **System Administrator** | `admin@omniforce.io` | `password` | Mengakses Web Admin Console, melihat analitik kepatuhan seluruh area, mengunduh rekap Excel, dan mencetak dokumen audit CAPA/PICA. |
-| **Sales Representative** | `budi@omniforce.io` | `password` | Melakukan simulasi absensi kunjungan, tes geofencing GPS, pengiriman foto bukti, dan pelaporan komplain toko (Wilayah: Jakarta Pusat). |
-| **Sales Representative** | `rina@omniforce.io` | `password` | Melakukan simulasi absensi toko retail wilayah Jakarta Selatan. |
-| **Sales Representative** | `dimas@omniforce.io` | `password` | Melakukan simulasi absensi toko retail wilayah Bandung Raya. |
+| **System Administrator** | `admin@omniforce.io` | `password` | Access Web Admin Console, view system-wide compliance analytics, download Excel audit workbooks, and print/export CAPA/PICA audit reports. |
+| **Sales Representative** | `budi@omniforce.io` | `password` | Simulate mobile check-in visits, test GPS geofencing radius, submit selfie proof, and log store disputes (Territory: Jakarta Pusat). |
+| **Sales Representative** | `rina@omniforce.io` | `password` | Simulate mobile visits for Jakarta Selatan territory. |
+| **Sales Representative** | `dimas@omniforce.io` | `password` | Simulate mobile visits for Bandung Raya territory. |
 
 ---
 
-## 🧪 Pengujian Otomatis (Automated Testing)
+## 🧪 Automated Testing Suite
 
-Jalankan rangkaian unit & feature test untuk memvalidasi arsitektur antrean dan kalkulasi geofencing:
+Execute the automated test suite to validate the staging queue architecture and Haversine distance calculations:
 
 ```bash
 php artisan test
 ```
 
-Rangkaian pengujian mencakup:
-* ✅ **Staging Ingestion Non-blocking:** Memastikan check-in mobile berhasil tersimpan di `visit_logs_temp` dengan respons HTTP 201 Created.
-* ✅ **Atomic Background Synchronization:** Memvalidasi pemindahan baris antrean secara atomik ke `visit_logs` dan penghapusan entri sementara pasca-sinkronisasi.
-* ✅ **Distance Threshold Verification:** Memverifikasi kalkulasi Haversine memberi penanda `is_within_geofence = true` pada radius $\le 250\text{m}$.
-* ✅ **Excel Export Stream Delivery:** Memastikan endpoint `/export/visit-logs/excel` mengembalikan *stream response* bertipe *spreadsheet*.
+Test coverage includes:
+* ✅ **Non-Blocking Staging Ingestion:** Validates mobile attendance logs write directly to `visit_logs_temp` with HTTP 201 Created.
+* ✅ **Atomic Background Synchronization:** Verifies atomic transaction migration to `visit_logs` and purge of processed temporary rows.
+* ✅ **Distance Threshold Validation:** Confirms Haversine calculations accurately assign `is_within_geofence = true` for distances $\le 250\text{m}$.
+* ✅ **Excel Export Stream Delivery:** Verifies the `/export/visit-logs/excel` endpoint returns a valid spreadsheet stream response.
 
 ---
 
-## 📄 Lisensi
-Dirilis di bawah lisensi [MIT](LICENSE). Terbuka untuk digunakan sebagai referensi arsitektur teknis dan portofolio profesional rekayasa perangkat lunak backend.
+## 📄 License & Attribution
+Distributed under the [MIT](LICENSE) License. Open for technical evaluation, code review, and professional software engineering portfolio reference.
